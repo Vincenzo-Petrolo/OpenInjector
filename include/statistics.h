@@ -70,8 +70,14 @@ public:
      */
     void setTime(double time);
     
+    
 private:
     double time;
+    
+    /*Contains a result object which describes
+     * the exit code, stack trace, resource usage,
+     * registers etc..
+     */
 };
 
 #endif // STATISTICS_H

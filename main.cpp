@@ -3,7 +3,7 @@
  */
 #include <iostream>
 #include <glog/logging.h>
-#include "sandboxed-api/sandboxed_api/util/flag.h"
+#include "sandboxed_api/util/flag.h"
 #include "binary.h"
 #include "injector.h"
 #include "tester.h"

@@ -80,7 +80,8 @@ void Tester::test(binary_t* target,size_t size, Statistics *statsContainer)
 	->set_enable_sandbox_before_exec(true)
 	.limits()
 	->set_rlimit_as(RLIM64_INFINITY)
-	.set_rlimit_fsize(1024);
+	.set_rlimit_fsize(1024)
+	.set_walltime_limit(absl::Seconds(30));
 	
 	sandbox2::Sandbox2 s2(std::move(executor),GetPolicy());
 	std::chrono::high_resolution_clock::time_point start_time = 
@@ -93,6 +94,9 @@ std::chrono::duration_cast<std::chrono::duration<double>>(stop_time -
 start_time);
 	statsContainer->setTime(time.count());
 	std::cout << "Result : " << result.ToString() << std::endl;
+#if 0
+	statsContainer->setResult(result);
+#endif
 }
 
 void Tester::testFaulty(binary_t* target, size_t size)
@@ -116,11 +120,24 @@ std::string Tester::statsConstructor(Tester::mode_t mode)
 	double tot_time = 0;
 	double average = 0;
 	for (Statistics *s : this->faultyStatistics) {
-		statistics.append("\"#").append(std::to_string(i)).append("\",") 	//Number of injection #1231
-		.append(std::to_string(s->getTime()))					//Time of execution
+#define DBG 0
+#if DBG
+		if (s->getResult().final_status() == sandbox2::Result::OK) {
+#endif
+		statistics.append("\"#").append(std::to_string(i)).append("\",") 
+		.append(std::to_string(s->getTime()))
 		.append("\n");
 		i++;
 		tot_time += s->getTime();
+#if DBG
+		} else {
+		statistics.append("\"#").append(std::to_string(i)).append("\",")
+		.append(s->getResult().StatusEnumToString(
+			s->getResult().final_status()
+		))
+		.append("\n");
+		}
+#endif
 	}
 	average = tot_time/i;
 	averages.append("\"Average faulty time\",").append(std::to_string(average)).append("\n"); 
