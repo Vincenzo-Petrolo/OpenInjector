@@ -17,42 +17,47 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include "tester.h"
-#include <iostream>
-#include <sys/stat.h>
 #include <fcntl.h>
-#include <stdio.h>
-#include <string.h>
+#include <sys/resource.h>
+#include <syscall.h>
 #include <unistd.h>
-#include <exception>
-#include <vector>
 #include <fstream>
-#include <chrono>
+#include <csignal>
+#include <cstdlib>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+#include <sys/stat.h>
+#include <glog/logging.h>
 #include "sandboxed_api/util/flag.h"
 #include "absl/memory/memory.h"
+#include "sandboxed_api/config.h"
 #include "sandboxed_api/sandbox2/executor.h"
-#include "sandboxed_api/sandbox2/ipc.h"
 #include "sandboxed_api/sandbox2/limits.h"
 #include "sandboxed_api/sandbox2/policy.h"
 #include "sandboxed_api/sandbox2/policybuilder.h"
 #include "sandboxed_api/sandbox2/result.h"
 #include "sandboxed_api/sandbox2/sandbox2.h"
 #include "sandboxed_api/sandbox2/util/bpf_helper.h"
-#include "sandboxed_api/sandbox2/util/runfiles.h"
+#include "sandboxed_api/util/runfiles.h"
+
+#include "tester.h"
+#include "statistics.h"
+
 
 std::unique_ptr<sandbox2::Policy> GetPolicy() {
-   return sandbox2::PolicyBuilder()
-      .AllowStaticStartup()
-      .AllowDynamicStartup()
-      .DangerDefaultAllowAll()
-      .AllowExit()
-      .EnableNamespaces()
-      .CollectStacktracesOnViolation(true)
-      .BuildOrDie();
+	 sandbox2::PolicyBuilder builder;
+	std::cout << "Policy crafted" << std::endl;
+	 return builder
+	.EnableNamespaces()
+	.DangerDefaultAllowAll()
+	.BuildOrDie();
 }
 
 Tester::Tester(binary_t *goldenBinary,size_t size)
 {
+	std::cout << "Tester" << std::endl;
 	this->goldenStatistics = new Statistics();
 	test(goldenBinary,size,this->goldenStatistics);
 }
@@ -76,26 +81,35 @@ void Tester::test(binary_t* target,size_t size, Statistics *statsContainer)
 
 	std::vector<std::string> args = {path};
 	auto executor = absl::make_unique<sandbox2::Executor>(path, args);
-	 executor
+
+	executor
 	->set_enable_sandbox_before_exec(true)
 	.limits()
 	->set_rlimit_as(RLIM64_INFINITY)
-	.set_rlimit_fsize(1024)
+	.set_rlimit_fsize(1024 * 1024)
+	.set_rlimit_cpu(60)
 	.set_walltime_limit(absl::Seconds(30));
+	std::cout << "test" << std::endl;
 	
-	sandbox2::Sandbox2 s2(std::move(executor),GetPolicy());
+	std::cout << "prima di pol" << std::endl;
+	auto policy = GetPolicy();
+	std::cout << "getpol" << std::endl;
+	sandbox2::Sandbox2 s2(std::move(executor), std::move(policy));
+
+	std::cout << "dopo s2" << std::endl;
+#if 0
 	std::chrono::high_resolution_clock::time_point start_time = 
 	std::chrono::high_resolution_clock::now();
 	auto result = s2.Run();
+	std::cout << "dopo run" << std::endl;
 	std::chrono::high_resolution_clock::time_point stop_time = 
 	std::chrono::high_resolution_clock::now();
 	std::chrono::duration<double> time = 
 std::chrono::duration_cast<std::chrono::duration<double>>(stop_time - 
 start_time);
+	std::cout << "after run" << std::endl;
 	statsContainer->setTime(time.count());
 	std::cout << "Result : " << result.ToString() << std::endl;
-#if 0
-	statsContainer->setResult(result);
 #endif
 }
 

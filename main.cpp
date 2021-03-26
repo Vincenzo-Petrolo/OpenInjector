@@ -3,16 +3,11 @@
  */
 #include <iostream>
 #include <glog/logging.h>
-#include "sandboxed_api/util/flag.h"
 #include "binary.h"
 #include "injector.h"
 #include "tester.h"
 
 int main(int argc, char **argv) {
-	gflags::ParseCommandLineFlags(&argc,&argv,true);
-	google::InitGoogleLogging(argv[0]);
-
-	VLOG(2) << "WEWE" << std::endl;
 	Binary *b;
 	Tester *t;
 	size_t size;

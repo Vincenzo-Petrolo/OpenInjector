@@ -1,7 +1,9 @@
+all: configure compile
 compile:
-	cd cmake_build_debug && cmake ..
-	cmake --build cmake_build_debug -j4
+	mkdir -p cmake_build_debug &&\
+	cd cmake_build_debug && cmake .. && cmake --build . -j4
+	cp cmake_build_debug/openinjector .
 configure:
-	git clone https://github.com/google/sandboxed-api.git --branch v20190823
+	git clone https://github.com/google/sandboxed-api.git
 clean:
 	cd cmake_build_debug && make clean
