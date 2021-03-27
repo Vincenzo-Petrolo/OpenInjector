@@ -70,7 +70,9 @@ public:
      */
     void setTime(double time);
     
+    int getExitStatus();
     
+    void setExitStatus(int status);
 private:
     double time;
     
@@ -78,6 +80,7 @@ private:
      * the exit code, stack trace, resource usage,
      * registers etc..
      */
+    int exit_status;
 };
 
 #endif // STATISTICS_H

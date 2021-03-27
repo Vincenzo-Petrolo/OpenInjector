@@ -50,3 +50,12 @@ void Statistics::setTime(double time)
     this->time = time;
 }
 
+int Statistics::getExitStatus()
+{
+	return this->exit_status;
+}
+
+void Statistics::setExitStatus(int status)
+{
+	this->exit_status = status;
+}

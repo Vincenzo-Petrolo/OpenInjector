@@ -6,7 +6,6 @@
 #include "binary.h"
 #include "injector.h"
 #include "tester.h"
-
 int main(int argc, char **argv) {
 	Binary *b;
 	Tester *t;
@@ -36,7 +35,6 @@ int main(int argc, char **argv) {
 	}
 	int i = 0;
 
-#if 1
 	for (i = 0; i < b->get_size()*8; i++) {
 		Injector::singleInjection(i,copy);
 		try {
@@ -48,12 +46,12 @@ int main(int argc, char **argv) {
 			<< e
 			<< std::endl;
 		}
+		std::cout << std::to_string(i) << std::endl;
 		b->regenerate(copy);
 	}
-#endif
 	b->destroy_copy(copy);
 	t->stringifyStats();
-	t->writeCSV(Tester::O_SHORT);
+	t->writeCSV(Tester::O_DETAILED);
 	delete t;
 	delete b;
 	return 0;

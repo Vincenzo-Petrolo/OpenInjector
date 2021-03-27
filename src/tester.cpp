@@ -48,7 +48,6 @@
 
 std::unique_ptr<sandbox2::Policy> GetPolicy() {
 	 sandbox2::PolicyBuilder builder;
-	std::cout << "Policy crafted" << std::endl;
 	 return builder
 	.EnableNamespaces()
 	.DangerDefaultAllowAll()
@@ -57,8 +56,8 @@ std::unique_ptr<sandbox2::Policy> GetPolicy() {
 
 Tester::Tester(binary_t *goldenBinary,size_t size)
 {
-	std::cout << "Tester" << std::endl;
 	this->goldenStatistics = new Statistics();
+	test(goldenBinary,size,this->goldenStatistics);
 	test(goldenBinary,size,this->goldenStatistics);
 }
 
@@ -88,29 +87,21 @@ void Tester::test(binary_t* target,size_t size, Statistics *statsContainer)
 	->set_rlimit_as(RLIM64_INFINITY)
 	.set_rlimit_fsize(1024 * 1024)
 	.set_rlimit_cpu(60)
-	.set_walltime_limit(absl::Seconds(30));
-	std::cout << "test" << std::endl;
+	.set_walltime_limit(absl::Seconds(2));
 	
-	std::cout << "prima di pol" << std::endl;
 	auto policy = GetPolicy();
-	std::cout << "getpol" << std::endl;
 	sandbox2::Sandbox2 s2(std::move(executor), std::move(policy));
 
-	std::cout << "dopo s2" << std::endl;
-#if 0
 	std::chrono::high_resolution_clock::time_point start_time = 
 	std::chrono::high_resolution_clock::now();
 	auto result = s2.Run();
-	std::cout << "dopo run" << std::endl;
 	std::chrono::high_resolution_clock::time_point stop_time = 
 	std::chrono::high_resolution_clock::now();
 	std::chrono::duration<double> time = 
 std::chrono::duration_cast<std::chrono::duration<double>>(stop_time - 
 start_time);
-	std::cout << "after run" << std::endl;
 	statsContainer->setTime(time.count());
-	std::cout << "Result : " << result.ToString() << std::endl;
-#endif
+	statsContainer->setExitStatus(result.final_status());
 }
 
 void Tester::testFaulty(binary_t* target, size_t size)
@@ -134,24 +125,22 @@ std::string Tester::statsConstructor(Tester::mode_t mode)
 	double tot_time = 0;
 	double average = 0;
 	for (Statistics *s : this->faultyStatistics) {
-#define DBG 0
-#if DBG
-		if (s->getResult().final_status() == sandbox2::Result::OK) {
-#endif
-		statistics.append("\"#").append(std::to_string(i)).append("\",") 
+		if (s->getExitStatus() == sandbox2::Result::OK) {
+		statistics
+		.append("\"#")
+		.append(std::to_string(i))
+		.append("\",") 
 		.append(std::to_string(s->getTime()))
 		.append("\n");
 		i++;
 		tot_time += s->getTime();
-#if DBG
 		} else {
 		statistics.append("\"#").append(std::to_string(i)).append("\",")
-		.append(s->getResult().StatusEnumToString(
-			s->getResult().final_status()
+		.append(sandbox2::Result::StatusEnumToString(
+			(sandbox2::Result::StatusEnum) s->getExitStatus()
 		))
 		.append("\n");
 		}
-#endif
 	}
 	average = tot_time/i;
 	averages.append("\"Average faulty time\",").append(std::to_string(average)).append("\n"); 
