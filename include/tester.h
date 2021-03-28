@@ -25,7 +25,7 @@
 #include "statistics.h"
 #include <list>
 
-
+#define GOLDEN_TIME_TIMES 10
 /**
  * Tester is a class responsible for the test
  * and statistics gathering over a binary file.

@@ -86,8 +86,12 @@ void Tester::test(binary_t* target,size_t size, Statistics *statsContainer)
 	.limits()
 	->set_rlimit_as(RLIM64_INFINITY)
 	.set_rlimit_fsize(1024 * 1024)
-	.set_rlimit_cpu(60)
-	.set_walltime_limit(absl::Seconds(2));
+	/*TIMEOUT time is given by 10 times the golden time*/
+	.set_walltime_limit(
+		absl::Seconds(
+		this->goldenStatistics->getTime()*GOLDEN_TIME_TIMES
+		)
+	);
 	
 	auto policy = GetPolicy();
 	sandbox2::Sandbox2 s2(std::move(executor), std::move(policy));
@@ -132,7 +136,6 @@ std::string Tester::statsConstructor(Tester::mode_t mode)
 		.append("\",") 
 		.append(std::to_string(s->getTime()))
 		.append("\n");
-		i++;
 		tot_time += s->getTime();
 		} else {
 		statistics.append("\"#").append(std::to_string(i)).append("\",")
@@ -141,6 +144,7 @@ std::string Tester::statsConstructor(Tester::mode_t mode)
 		))
 		.append("\n");
 		}
+		i++;
 	}
 	average = tot_time/i;
 	averages.append("\"Average faulty time\",").append(std::to_string(average)).append("\n"); 
