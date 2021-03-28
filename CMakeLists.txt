@@ -34,3 +34,11 @@ target_link_libraries(openinjector PRIVATE
 		statistics
 		injector
 		)
+add_executable(array_tester ../array_tester.cpp)
+
+target_link_libraries(array_tester PRIVATE
+		binary
+		tester
+		statistics
+		injector
+		)
