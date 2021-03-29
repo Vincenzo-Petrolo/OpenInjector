@@ -51,11 +51,13 @@ std::unique_ptr<sandbox2::Policy> GetPolicy() {
 	 return builder
 	.EnableNamespaces()
 	.DangerDefaultAllowAll()
+	.AllowDynamicStartup()
 	.BuildOrDie();
 }
 
 Tester::Tester(binary_t *goldenBinary,size_t size)
 {
+	this->injection_count = 0;
 	this->goldenStatistics = new Statistics();
 	test(goldenBinary,size,this->goldenStatistics);
 	test(goldenBinary,size,this->goldenStatistics);
@@ -106,6 +108,8 @@ std::chrono::duration_cast<std::chrono::duration<double>>(stop_time -
 start_time);
 	statsContainer->setTime(time.count());
 	statsContainer->setExitStatus(result.final_status());
+	this->injection_count++;
+	appendStats(statsContainer); // write stats to CSV file
 }
 
 void Tester::testFaulty(binary_t* target, size_t size)
@@ -120,6 +124,8 @@ Statistics Tester::getGoldenStats()
 	return *this->goldenStatistics;
 }
 
+/**TODO remove this function
+ */
 std::string Tester::statsConstructor(Tester::mode_t mode)
 {
 	std::string statistics;
@@ -155,6 +161,38 @@ std::string Tester::statsConstructor(Tester::mode_t mode)
 	result.append(averages);
 	return result;
 }
+
+void Tester::appendStats(Statistics* s)
+{
+	std::string line;
+	
+	if (s->getExitStatus() == sandbox2::Result::OK) {
+		line
+		.append("\"#")
+		.append(std::to_string(this->injection_count))
+		.append("\",") 
+		.append(std::to_string(s->getTime()))
+		.append("\n");
+	} else {
+		line
+		.append("\"#")
+		.append(std::to_string(this->injection_count))
+		.append("\",")
+		.append(sandbox2::Result::StatusEnumToString(
+			(sandbox2::Result::StatusEnum) s->getExitStatus()
+		))
+		.append("\n");
+		}
+	std::fstream stats_out("statistics.csv",std::fstream::in | 
+						std::fstream::out | 
+						std::fstream::app
+		     );
+	
+	stats_out << line;
+	
+	stats_out.close();
+}
+
 
 void Tester::stringifyStats()
 {

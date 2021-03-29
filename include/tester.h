@@ -24,6 +24,7 @@
 #include "binary.h"
 #include "statistics.h"
 #include <list>
+#include <sys/types.h>
 
 #define GOLDEN_TIME_TIMES 10
 /**
@@ -130,6 +131,13 @@ private:
      * @param mode : O_DETAILED || O_SHORT
      */
     std::string statsConstructor(mode_t mode);
+    
+    void appendStats(Statistics *s);
+    
+    /**
+     * @param count the injection_id
+     */
+    u_int64_t injection_count;
 };
 
 #endif // TESTER_H

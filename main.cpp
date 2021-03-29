@@ -50,8 +50,6 @@ int main(int argc, char **argv) {
 		b->regenerate(copy);
 	}
 	b->destroy_copy(copy);
-	t->stringifyStats();
-	t->writeCSV(Tester::O_DETAILED);
 	delete t;
 	delete b;
 	return 0;
