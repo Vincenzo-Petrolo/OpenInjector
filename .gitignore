@@ -1,0 +1,4 @@
+documentation/
+cmake_build_debug/
+sandboxed-api/
+*.csv
