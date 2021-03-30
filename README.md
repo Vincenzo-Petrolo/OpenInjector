@@ -1,4 +1,5 @@
 # Openinjector
+<img src="logo_v0_01.png" alt="drawing" width="300"/> <br />
 Openinjector is a framework aimed to analyse and report critical sections of binaries executable(ELF) on linux.
 ## Features
 Openinjector supports:
