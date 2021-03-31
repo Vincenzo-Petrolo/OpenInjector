@@ -70,9 +70,20 @@ public:
      */
     void setTime(double time);
     
+    /**
+     * @brief returns the result from execution
+     * in sandbox
+     * @return an integer with the exit status
+     */
     int getExitStatus();
     
+    /**
+     * @brief setter of the variable status
+     * @param status : result of execution of injected
+     * executable
+     */
     void setExitStatus(int status);
+
 private:
     double time;
     
@@ -81,6 +92,7 @@ private:
      * registers etc..
      */
     int exit_status;
+
 };
 
 #endif // STATISTICS_H

@@ -7,9 +7,12 @@
 #include "injector.h"
 #include "tester.h"
 
-#define EXAMPLE 1
+#define EXAMPLE 0
 
 #if EXAMPLE == 0
+/*
+ * Hello world example
+ */
 int main(int argc, char **argv) {
 	Binary *b;
 	Tester *t;
@@ -50,9 +53,12 @@ int main(int argc, char **argv) {
 			<< e
 			<< std::endl;
 		}
-		std::cout << std::to_string(i) << std::endl;
 		b->regenerate(copy);
 	}
+	
+	t->writeStats(Tester::F_CSV,Tester::O_DETAILED,"final_stats.csv");
+	//t->writeStats(Tester::F_STDOUT,Tester::O_DETAILED);
+	
 	b->destroy_copy(copy);
 	delete t;
 	delete b;
@@ -62,6 +68,9 @@ int main(int argc, char **argv) {
 #endif
 
 #if EXAMPLE == 1
+/*
+ * Array sum example
+ */
 int main(int argc, char **argv) {
 	Binary *b;
 	Tester *t;
@@ -89,31 +98,12 @@ int main(int argc, char **argv) {
 	
 		std::cout << error_msg << std::endl;
 	}
-#if 0
+	//INJECTING array_sum
 	int i;
-	int starting_text = 4198624;
-	int ending_text = 4724416;
+	int starting_text = 49152;
+	int ending_text = 49408;
 	/*Injects only in .text section of ELF binary*/
 	for (i = starting_text; i < ending_text; i++) {
-		Injector::singleInjection(i,copy);
-		try {
-			t->testFaulty(copy,size);
-		} catch (int e) {
-			std::cout <<
-			"Caught exception : "
-			<< std:: endl
-			<< e
-			<< std::endl;
-		}
-		std::cout << std::to_string(i) << std::endl;
-		b->regenerate(copy);
-	}
-#endif
-	int i;
-	int starting_data = 49808;
-	int ending_data = 50008;
-	/*Injects only in .data section of ELF binary*/
-	for (i = starting_data-50; i <= ending_data; i++) {
 		Injector::singleInjection(i,copy);
 		try {
 			t->testFaulty(copy,size);

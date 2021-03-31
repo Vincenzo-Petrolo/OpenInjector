@@ -37,6 +37,20 @@ public:
 	typedef enum {	O_DETAILED,
 			O_SHORT
 	} mode_t;
+	
+	typedef enum {
+		F_CSV,
+		F_JSON,
+		F_TXT,
+		F_STDOUT
+	} file_t;
+	
+	typedef enum {
+		P_VERY_STRICT, 	// : No syscall
+		P_STRICT,	// : open(), read(), tmpfs
+		P_NORMAL,	// : read(),write(),open(),close()
+		P_FLEXIBLE	// : all system calls
+	} policy_t;
     /**
      * Default constructor.
      * Calculates all the parameters needed
@@ -75,21 +89,10 @@ public:
     std::list<Statistics> getFaultyStats();
     
     /**
-     * Write to file in csv format
-     * all the statistics.
-     * @param filename : desired filename.
-     * @throw std::invalid_argument if a file
-     * with that name already exists.
-     */
-    void writeStats(std::string filename);
-    
-    /**
-     * Print to stdout statistics
-     */
-    void stringifyStats();
-    
-    /**Write statistics to @file "statistics.csv"
+     * @brief Write final report of statistics gathered to file
+     * @param file_type might be also STDOUT
      * @param mode : O_DETAILED or O_SHORT
+     * @param filename name of the file
      * O_DETAILED : gives infos on all
      * the faulty binaries.
      * @warning O_DETAILED might generate
@@ -97,7 +100,22 @@ public:
      * O_SHORT writes only statistics
      * related to average results.
      */
-    void writeCSV(mode_t mode);
+    void writeStats(
+		file_t file_type,
+		mode_t mode,
+		std::string filename = nullptr);
+    
+    /**
+     * @brief Sets timeout for execution
+     * of injected binary
+     */
+    void setExecutionTimeout(int timeout);
+    
+    /**
+     * @brief Set a policy for injection default is flexible
+     * @param p : policy to set
+     */
+    void setPolicy(policy_t p);
 private:
     /**
      * The golden statistics.
@@ -132,12 +150,25 @@ private:
      */
     std::string statsConstructor(mode_t mode);
     
+    /**
+     * Append a line to the stats file
+     */
     void appendStats(Statistics *s);
     
     /**
      * @param count the injection_id
      */
     u_int64_t injection_count;
+    
+    /**
+     * @param timeout to set in milliseconds
+     */
+    int timeout_ms;
+    
+    /**
+     * @param policy definition for sandboxing
+     */
+    policy_t policy;
 };
 
 #endif // TESTER_H

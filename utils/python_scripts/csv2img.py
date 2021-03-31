@@ -2,6 +2,7 @@ from PIL import Image
 import numpy as np
 import csv
 import math
+import sys
 
 RED     = (249, 64, 2)  # <---- SIGNALED
 ORANGE  = (249, 117, 2) # <---- TIMEOUT
@@ -10,8 +11,8 @@ GREEN   = (97, 124, 98) # <---- OK - NO ERRORS BUT SLOWER
 CYAN    = (2, 249, 212) # <---- OK - NO ERRORS AND FASTER THAN GOLDEN TIME
 NULL    = (0,0,0)       # <---- NO BITS
 GOLDEN_TIME = -1 # will be updated
-MAX_COLS = 730 # maximum pixels in horizontal
-STATISTICS_FILENAME = "statistics.csv"
+MAX_COLS = int(sys.argv[2]) # maximum pixels in horizontal
+STATISTICS_FILENAME = str(sys.argv[1])
 INJECTION_ID="injection_id"
 EXIT_STATUS="exit_status"
 

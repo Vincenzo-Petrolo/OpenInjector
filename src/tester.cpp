@@ -46,12 +46,36 @@
 #include "statistics.h"
 
 
-std::unique_ptr<sandbox2::Policy> GetPolicy() {
+std::unique_ptr<sandbox2::Policy> GetPolicy(Tester::policy_t p) {
 	 sandbox2::PolicyBuilder builder;
+	 
+	 if (p == Tester::P_VERY_STRICT) {
+		 return builder
+		 .EnableNamespaces()
+		 .BuildOrDie();
+	 } else if (p == Tester::P_STRICT) {
+		 return builder
+		 .EnableNamespaces()
+		 .AllowRead()
+		 .AllowOpen()
+		 .BuildOrDie();
+	 } else if (p == Tester::P_NORMAL) {
+		 return builder
+		 .EnableNamespaces()
+		 .AllowRead()
+		 .AllowWrite()
+		 .AllowOpen()
+		 .BuildOrDie();
+	 } else if (p == Tester::P_FLEXIBLE) {
+		return builder
+		.EnableNamespaces()
+		.DangerDefaultAllowAll()
+		.BuildOrDie();
+	 }
+
 	 return builder
 	.EnableNamespaces()
 	.DangerDefaultAllowAll()
-	.AllowDynamicStartup()
 	.BuildOrDie();
 }
 
@@ -59,8 +83,15 @@ Tester::Tester(binary_t *goldenBinary,size_t size)
 {
 	this->injection_count = 0;
 	this->goldenStatistics = new Statistics();
+	this->policy = P_FLEXIBLE;
+	this->timeout_ms = 1000000;
+	/*Executing some times and getting only the last time*/
 	test(goldenBinary,size,this->goldenStatistics);
 	test(goldenBinary,size,this->goldenStatistics);
+	test(goldenBinary,size,this->goldenStatistics);
+	/*After executing golden binary setting to default
+	 the execution time*/
+	this->timeout_ms = GOLDEN_TIME_TIMES*this->goldenStatistics->getTime();
 }
 
 Tester::~Tester()
@@ -88,14 +119,13 @@ void Tester::test(binary_t* target,size_t size, Statistics *statsContainer)
 	.limits()
 	->set_rlimit_as(RLIM64_INFINITY)
 	.set_rlimit_fsize(1024 * 1024)
-	/*TIMEOUT time is given by 10 times the golden time*/
 	.set_walltime_limit(
-		absl::Seconds(
-		this->goldenStatistics->getTime()*GOLDEN_TIME_TIMES
+		absl::Milliseconds(
+		this->timeout_ms
 		)
 	);
 	
-	auto policy = GetPolicy();
+	auto policy = GetPolicy(this->policy);
 	sandbox2::Sandbox2 s2(std::move(executor), std::move(policy));
 
 	std::chrono::high_resolution_clock::time_point start_time = 
@@ -103,13 +133,20 @@ void Tester::test(binary_t* target,size_t size, Statistics *statsContainer)
 	auto result = s2.Run();
 	std::chrono::high_resolution_clock::time_point stop_time = 
 	std::chrono::high_resolution_clock::now();
-	std::chrono::duration<double> time = 
-std::chrono::duration_cast<std::chrono::duration<double>>(stop_time - 
-start_time);
+
+	std::chrono::duration<double> duration_tmp = 
+	std::chrono::duration_cast<std::chrono::duration<double>>
+	(stop_time - start_time);
+
+	std::chrono::duration<double,std::milli> time = 
+	std::chrono::duration_cast<
+	std::chrono::milliseconds>(duration_tmp);
 	statsContainer->setTime(time.count());
 	statsContainer->setExitStatus(result.final_status());
 	this->injection_count++;
-	appendStats(statsContainer); // write stats to CSV file
+
+	/*Append to temporary file*/
+	appendStats(statsContainer);
 }
 
 void Tester::testFaulty(binary_t* target, size_t size)
@@ -183,7 +220,7 @@ void Tester::appendStats(Statistics* s)
 		))
 		.append("\n");
 		}
-	std::fstream stats_out("statistics.csv",std::fstream::in | 
+	std::fstream stats_out("statistics_backup.csv",std::fstream::in | 
 						std::fstream::out | 
 						std::fstream::app
 		     );
@@ -194,17 +231,88 @@ void Tester::appendStats(Statistics* s)
 }
 
 
-void Tester::stringifyStats()
+void Tester::writeStats( Tester::file_t file_type, 
+			 Tester::mode_t mode, 
+			std::string filename
+			)
 {
-	std::cout << "===============Statistics===============" << std::endl;
-	std::cout << statsConstructor(O_SHORT) << std::endl;
-	std::cout << "===============End===============" << std::endl;
+	std::string time_section = "";
+	
+	
+	/**Section where we process all final
+	 * statistics
+	 */
+	// AVERAGE TIME OF EXECUTION - GOLDEN TIME
+	double average_time = 0.0;
+	int n = 0;
+	for (Statistics *s : this->faultyStatistics) {
+		if (s->getExitStatus() == sandbox2::Result::OK) {
+			average_time += s->getTime();
+			n++;
+		}
+	}
+	average_time /= n;
+	time_section
+		.append("\"Average faulty time\",")
+		.append(std::to_string(average_time))
+		.append("\n"); 
+	time_section
+		.append("\"Golden time\",")
+		.append(std::to_string(goldenStatistics->getTime()))
+		.append("\n");
+	
+	// DETAILED STATS 
+	std::string details = "";
+	n = 0;
+	if (mode == O_DETAILED) {
+		for (Statistics *s : this->faultyStatistics) {
+			details
+			.append("\"#")
+			//ID
+			.append(std::to_string(n))
+			.append("\",");
+			if (s->getExitStatus() == sandbox2::Result::OK) {
+				details
+				//TIME
+				.append(std::to_string(s->getTime()))
+				//APPEND OTHERS FROM HERE..
+				.append("\n");
+			} else {
+				details
+				.append(sandbox2::Result::StatusEnumToString(
+					(sandbox2::Result::StatusEnum)
+					s->getExitStatus()
+				))
+				.append("\n");
+			}
+			n++;
+		}
+	}
+	
+	/*
+	 * Saving all in the file
+	 */
+	std::fstream stats_out;
+	
+	if (file_type == F_STDOUT) {
+		std::cout << details << std::endl;
+		std::cout << time_section << std::endl;
+	} else if (file_type == F_CSV) {
+		stats_out = std::fstream(filename.c_str(),
+					std::fstream::out);
+		stats_out << details;
+		stats_out << time_section;
+	}
 
 }
 
-void Tester::writeCSV(Tester::mode_t mode)
+void Tester::setExecutionTimeout(int timeout)
 {
-	std::fstream stats_out;
-	stats_out.open("statistics.csv",std::ios::out);
-	stats_out << statsConstructor(mode) << std::endl;
+	this->timeout_ms = timeout;
+}
+
+
+void Tester::setPolicy(Tester::policy_t p)
+{
+	this->policy = p;
 }
